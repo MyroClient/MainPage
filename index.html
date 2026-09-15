@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyroClient — Lightweight PvP Client for Minecraft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-alt: #101010;
+    --panel: #151515;
+    --panel-2: #1b1b1b;
+    --border: #262626;
+    --text: #ededed;
+    --text-dim: #a3a3a0;
+    --text-mute: #6b6b68;
+    --orange: #ff5c1a;
+    --orange-bright: #ff7a3d;
+    --orange-dim: #7a2c0f;
+    --radius: 10px;
+    --maxw: 1180px;
+    color-scheme: dark;
+  }
+
+  html.light {
+    --bg: #faf9f7;
+    --bg-alt: #f2f0ec;
+    --panel: #ffffff;
+    --panel-2: #f4f2ee;
+    --border: #e4e0d8;
+    --text: #171410;
+    --text-dim: #57534a;
+    --text-mute: #8a8577;
+    --orange: #e8500e;
+    --orange-bright: #ff5c1a;
+    --orange-dim: #ffd9c2;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    transition: background .25s ease, color .25s ease;
+    overflow-x: hidden;
+  }
+
+  .display { font-family: 'Space Grotesk', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  a { color: inherit; text-decoration: none; }
+  img { max-width: 100%; display: block; }
+
+  ::selection { background: var(--orange); color: #0a0a0a; }
+
+  :focus-visible {
+    outline: 2px solid var(--orange);
+    outline-offset: 3px;
+  }
+
+  .wrap {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  /* ---------- HERO CYCLE (desktop) ---------- */
+  .hero-cycle {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  @media (min-width: 901px) {
+    .hero-cycle { display: flex; }
+    .hero-mark { display: none; }
+  }
+  .cycle-word {
+    position: absolute;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(2.2rem, 3.6vw, 3.4rem);
+    letter-spacing: -0.02em;
+    color: var(--text);
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    white-space: nowrap;
+  }
+  .cycle-word .bar {
+    width: 6px;
+    height: 0.9em;
+    background: var(--orange);
+    box-shadow: 0 0 18px var(--orange);
+    flex-shrink: 0;
+  }
+  .cycle-word.show {
+    animation: cycleWord 2.6s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  @keyframes cycleWord {
+    0% { opacity: 0; transform: translateY(16px) scale(0.96); }
+    12% { opacity: 1; transform: translateY(0) scale(1); }
+    82% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-12px) scale(1.02); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cycle-word { display: none; }
+  }
+
+  /* ---------- NAV ---------- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand img { height: 32px; width: auto; }
+  .brand span {
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+
+  nav ul {
+    display: flex;
+    gap: 30px;
+    list-style: none;
+  }
+
+  nav a {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    font-weight: 500;
+    transition: color .15s ease;
+  }
+  nav a:hover { color: var(--text); }
+
+  .nav-right { display: flex; align-items: center; gap: 14px; }
+
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    cursor: pointer;
+    align-items: center;
+  }
+  .hamburger span {
+    display: block;
+    width: 16px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: transform .25s ease, opacity .2s ease;
+  }
+  .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2) { opacity: 0; }
+  .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  @media (min-width: 860px) { .hamburger { display: none; } }
+
+  .mobile-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: min(78vw, 320px);
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    padding: 90px 28px 32px;
+    gap: 8px;
+    transform: translateX(100%);
+    transition: transform .32s cubic-bezier(.2,.8,.2,1);
+    box-shadow: -20px 0 50px rgba(0,0,0,0.35);
+  }
+  .mobile-menu.open { transform: translateX(0); }
+  .mobile-menu a {
+    padding: 14px 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .mobile-menu .btn { margin-top: 18px; justify-content: center; }
+  .menu-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 199;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .28s ease;
+  }
+  .menu-scrim.open { opacity: 1; pointer-events: auto; }
+  @media (min-width: 860px) { .mobile-menu, .menu-scrim { display: none; } }
+
+  .theme-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  .theme-toggle:hover { color: var(--orange); border-color: var(--orange-dim); }
+  .theme-toggle svg { width: 17px; height: 17px; }
+  .theme-toggle .sun { display: none; }
+  html.light .theme-toggle .sun { display: block; }
+  html.light .theme-toggle .moon { display: none; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 7px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform .12s ease, background .15s ease, border-color .15s ease;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--orange);
+    color: #0a0a0a;
+  }
+  .btn-primary:hover { background: var(--orange-bright); }
+  .btn-ghost {
+    border-color: var(--border);
+    color: var(--text);
+    background: transparent;
+  }
+  .btn-ghost:hover { border-color: var(--orange); }
+
+  .nav-cta { display: none; }
+  @media (min-width: 860px) { .nav-cta { display: inline-flex; } }
+  nav ul { display: none; }
+  @media (min-width: 860px) { nav ul { display: flex; } }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    position: relative;
+    padding: 90px 0 70px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: -220px;
+    right: -160px;
+    width: 620px;
+    height: 620px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--orange) 24%, transparent) 0%, transparent 68%);
+    pointer-events: none;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 56px;
+    align-items: center;
+    position: relative;
+  }
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; }
+  }
+
+  .eyebrow-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 22px;
+  }
+  .eyebrow-tag .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #3ecf6e;
+    box-shadow: 0 0 8px #3ecf6e;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 5.2vw, 4rem);
+    font-weight: 700;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    margin-bottom: 22px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--orange);
+  }
+
+  .hero p.lead {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    max-width: 46ch;
+    margin-bottom: 34px;
+  }
+
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 42px; }
+  .btn-lg { padding: 14px 26px; font-size: 0.95rem; }
+
+  .hero-stats {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+  .stat .num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .stat .num span { color: var(--orange); }
+  .stat .label {
+    font-size: 0.82rem;
+    color: var(--text-mute);
+    margin-top: 2px;
+  }
+
+  .hero-visual {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero-mark {
+    width: min(320px, 78%);
+    filter: drop-shadow(0 30px 60px color-mix(in srgb, var(--orange) 32%, transparent));
+    animation: markFloat 5s ease-in-out infinite;
+  }
+  html.light .hero-mark { filter: drop-shadow(0 20px 40px rgba(0,0,0,0.12)); }
+  .hero-mark img {
+    width: 100%;
+  }
+  @keyframes markFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+
+  /* ---------- SECTION SHARED ---------- */
+  section { padding: 88px 0; border-bottom: 1px solid var(--border); }
+  .section-head { max-width: 620px; margin-bottom: 52px; }
+  .kicker {
+    color: var(--orange);
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .section-head h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  .section-head p { color: var(--text-dim); font-size: 1.02rem; }
+
+  /* ---------- FEATURES (asymmetric bento) ---------- */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 18px;
+  }
+  .feature-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 30px;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .feature-card p { color: var(--text-dim); font-size: 0.94rem; }
+  .f-icon {
+    width: 42px; height: 42px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--orange) 14%, transparent);
+    color: var(--orange);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .f-icon svg { width: 21px; height: 21px; }
+
+  .f-big { grid-column: span 4; min-height: 260px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .f-med { grid-column: span 2; }
+  .f-half { grid-column: span 3; }
+
+  @media (max-width: 900px) {
+    .feature-grid { grid-template-columns: 1fr; }
+    .f-big, .f-med, .f-half { grid-column: span 1; }
+  }
+
+  .f-big .bolt-bg {
+    position: absolute;
+    right: -30px;
+    top: -30px;
+    width: 220px;
+    opacity: 0.07;
+    pointer-events: none;
+  }
+
+  /* ---------- SERVERS ---------- */
+  .server-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 900px) { .server-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 540px) { .server-grid { grid-template-columns: 1fr; } }
+
+  .server-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: border-color .15s ease;
+  }
+  .server-card:hover { border-color: color-mix(in srgb, var(--orange) 45%, var(--border)); }
+  .server-logo {
+    height: 56px;
+    width: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 10px;
+  }
+  .server-logo img { height: 100%; width: 100%; object-fit: cover; }
+  .server-name { font-weight: 600; font-size: 0.98rem; }
+  .server-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    color: var(--text-mute);
+  }
+  .rng-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--orange);
+    background: color-mix(in srgb, var(--orange) 12%, transparent);
+    padding: 3px 8px;
+    border-radius: 5px;
+  }
+  .server-quip {
+    font-size: 0.86rem;
+    color: var(--text-dim);
+    font-style: italic;
+    border-left: 2px solid var(--orange-dim);
+    padding-left: 10px;
+  }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    counter-reset: step;
+  }
+  @media (max-width: 800px) { .steps { grid-template-columns: 1fr; } }
+  .step {
+    position: relative;
+    padding-top: 8px;
+  }
+  .step .step-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--border);
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+  .step h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; margin-bottom: 8px; font-weight: 600; }
+  .step p { color: var(--text-dim); font-size: 0.92rem; }
+  .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 26px;
+    right: -34px;
+    width: 20px;
+    height: 1px;
+    background: var(--border);
+    display: none;
+  }
+  @media (min-width: 801px) { .step:not(:last-child)::after { display: block; } }
+
+  /* ---------- STATS STRIP ---------- */
+  .stats-strip {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    text-align: center;
+  }
+  @media (max-width: 700px) { .stats-strip { grid-template-columns: repeat(2, 1fr); } }
+  .stats-strip .num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: var(--orange);
+  }
+  .stats-strip .label { color: var(--text-mute); font-size: 0.85rem; margin-top: 6px; }
+
+  /* ---------- ABOUT ---------- */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 50px;
+    align-items: start;
+  }
+  @media (max-width: 800px) { .about-grid { grid-template-columns: 1fr; } }
+
+  .about-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+  .founder-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+  .founder-skin {
+    width: 96px;
+    height: 176px;
+    background: var(--panel-2);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .founder-skin img { width: auto; height: 100%; image-rendering: pixelated; }
+  .founder-skin.skin-fallback img { display: none; }
+  .founder-skin.skin-fallback { align-items: center; justify-content: center; }
+  .founder-skin.skin-fallback::after {
+    content: 'M';
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 2rem;
+    color: var(--orange);
+  }
+  .founder-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.15rem; }
+  .founder-role { color: var(--orange); font-size: 0.85rem; font-weight: 600; margin-top: 2px; }
+  .about-card p.bio { color: var(--text-dim); font-size: 0.94rem; margin-top: 14px; }
+
+  .about-copy h2 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 18px; }
+  .about-copy p { color: var(--text-dim); margin-bottom: 16px; font-size: 1rem; }
+  .about-copy .kicker { display: block; margin-bottom: 10px; }
+
+  /* ---------- FOOTER CTA ---------- */
+  .cta-section { text-align: center; padding: 100px 0; border-bottom: none; }
+  .cta-section h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(1.9rem, 4vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+  }
+  .cta-section p { color: var(--text-dim); margin-bottom: 34px; }
+  .cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .cta-actions .btn {
+    min-width: 272px;
+    justify-content: center;
+  }
+  .btn .btn-icon {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+    display: inline-flex;
+  }
+  .btn .btn-icon svg { width: 100%; height: 100%; }
+
+  /* ---------- SOCIAL ROW ---------- */
+  .social-row {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 30px;
+  }
+  .social-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text-dim);
+    font-size: 0.86rem;
+    font-weight: 600;
+    transition: border-color .18s ease, color .18s ease, transform .18s ease;
+  }
+  .social-chip:hover {
+    border-color: var(--orange);
+    color: var(--text);
+    transform: translateY(-2px);
+  }
+  .social-chip svg { width: 17px; height: 17px; flex-shrink: 0; }
+  .social-chip .platform { color: var(--text-mute); font-weight: 500; }
+
+  /* ---------- DOWNLOAD OVERLAY (full-screen, Modrinth-style) ---------- */
+  #dlOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s ease, visibility .25s ease;
+  }
+  #dlOverlay.show { opacity: 1; visibility: visible; }
+
+  .dl-overlay-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .dl-ring {
+    position: relative;
+    width: 108px;
+    height: 108px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dl-ring svg { width: 108px; height: 108px; transform: rotate(-90deg); }
+  .dl-ring circle {
+    fill: none;
+    stroke-width: 5;
+  }
+  .dl-ring .track { stroke: var(--border); }
+  .dl-ring .fill {
+    stroke: var(--orange);
+    stroke-linecap: round;
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+  }
+  #dlOverlay.show .dl-ring .fill {
+    animation: dlRingFill 1.15s cubic-bezier(.3,.6,.3,1) forwards;
+  }
+  @keyframes dlRingFill {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .dl-icon {
+    position: absolute;
+    color: var(--orange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dl-icon svg { width: 40px; height: 40px; }
+  .dl-icon .dl-arrow {
+    transform-origin: center;
+    opacity: 1;
+  }
+  .dl-icon .dl-check {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  #dlOverlay.show .dl-icon .dl-arrow {
+    animation: dlArrowDrop 1.15s ease forwards;
+  }
+  #dlOverlay.show .dl-icon .dl-check {
+    animation: dlCheckIn .35s ease forwards;
+    animation-delay: 1.05s;
+  }
+  @keyframes dlArrowDrop {
+    0% { transform: translateY(-6px); opacity: 1; }
+    75% { transform: translateY(4px); opacity: 1; }
+    90% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes dlCheckIn {
+    0% { opacity: 0; transform: scale(0.6); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .dl-overlay-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text);
+  }
+  .dl-overlay-sub {
+    font-size: 0.84rem;
+    color: var(--text-mute);
+    margin-top: -10px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #dlOverlay { display: none !important; }
+  }
+
+  /* ---------- OS ICON ---------- */
+  .os-icon svg { width: 100%; height: 100%; }
+
+  /* ---------- OS PICKER MODAL ---------- */
+  .os-picker {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .22s ease, visibility .22s ease;
+  }
+  .os-picker.show { opacity: 1; visibility: visible; }
+  .os-picker-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: min(380px, 100%);
+    padding: 22px;
+    transform: translateY(10px) scale(0.98);
+    transition: transform .22s ease;
+  }
+  .os-picker.show .os-picker-card { transform: translateY(0) scale(1); }
+  .os-picker-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+  }
+  .os-picker-head button {
+    background: transparent;
+    border: none;
+    color: var(--text-mute);
+    cursor: pointer;
+    display: flex;
+    padding: 4px;
+  }
+  .os-picker-head button:hover { color: var(--text); }
+  .os-picker-head button svg { width: 18px; height: 18px; }
+  .os-picker-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .os-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: border-color .15s ease, transform .12s ease;
+    text-align: left;
+  }
+  .os-option:hover { border-color: var(--orange); }
+  .os-option:active { transform: scale(0.98); }
+  .os-option .os-icon { width: 20px; height: 20px; color: var(--orange); flex-shrink: 0; }
+
+  footer {
+    padding: 40px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .footer-brand { display: flex; align-items: center; gap: 10px; color: var(--text-mute); font-size: 0.85rem; }
+  .footer-brand img { height: 24px; width: auto; }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { color: var(--text-mute); font-size: 0.85rem; transition: color .15s ease; }
+  .footer-links a:hover { color: var(--orange); }
+
+  code, .inline-mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; background: var(--panel-2); padding: 2px 6px; border-radius: 4px; }
+
+  /* ---------- SCROLL REVEAL ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(22px);
+    transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1);
+  }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+  .reveal-stagger.in .feature-card,
+  .reveal-stagger.in .server-card,
+  .reveal-stagger.in .step {
+    animation: staggerUp .6s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .reveal-stagger .feature-card:nth-child(1), .reveal-stagger .server-card:nth-child(1), .reveal-stagger .step:nth-child(1) { animation-delay: .04s; }
+  .reveal-stagger .feature-card:nth-child(2), .reveal-stagger .server-card:nth-child(2), .reveal-stagger .step:nth-child(2) { animation-delay: .11s; }
+  .reveal-stagger .feature-card:nth-child(3), .reveal-stagger .server-card:nth-child(3), .reveal-stagger .step:nth-child(3) { animation-delay: .18s; }
+  .reveal-stagger .feature-card:nth-child(4), .reveal-stagger .server-card:nth-child(4) { animation-delay: .25s; }
+  .reveal-stagger .feature-card:nth-child(5) { animation-delay: .32s; }
+  @keyframes staggerUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .server-card, .feature-card { transition: transform .2s ease, border-color .15s ease; }
+  .server-card:hover, .feature-card:hover { transform: translateY(-3px); }
+</style>
+</head>
+<body>
+
+<div id="dlOverlay" aria-hidden="true">
+  <div class="dl-overlay-inner">
+    <div class="dl-ring">
+      <svg viewBox="0 0 108 108">
+        <circle class="track" cx="54" cy="54" r="48"></circle>
+        <circle class="fill" cx="54" cy="54" r="48"></circle>
+      </svg>
+      <span class="dl-icon">
+        <svg class="dl-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg>
+        <svg class="dl-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; top:0; left:0;"><path d="M20 6L9 17l-5-5"/></svg>
+      </span>
+    </div>
+    <div class="dl-overlay-text" id="dlOverlayText">Starting download…</div>
+    <div class="dl-overlay-sub" id="dlOverlaySub">MyroClient</div>
+  </div>
+</div>
+
+<div id="osPicker" class="os-picker" aria-hidden="true">
+  <div class="os-picker-card">
+    <div class="os-picker-head">
+      <span>Choose your platform</span>
+      <button type="button" id="osPickerClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="os-picker-options" id="osPickerOptions"></div>
+  </div>
+</div>
+
+<header>
+  <div class="wrap nav-inner">
+    <a href="#top" class="brand">
+      <img src="assets/logo-nobg.png" alt="MyroClient" id="navLogo">
+      <span>MyroClient</span>
+    </a>
+    <nav>
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#servers">Servers</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    </nav>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <a href="#download" class="btn btn-primary nav-cta">Download</a>
+      <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="menu-scrim" id="menuScrim"></div>
+<nav class="mobile-menu" id="mobileMenu">
+  <a href="#features">Features</a>
+  <a href="#servers">Servers</a>
+  <a href="#how">How it works</a>
+  <a href="#about">About</a>
+  <a href="#download" class="btn btn-primary dl-btn">Download</a>
+</nav>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero" style="border-bottom:1px solid var(--border);">
+    <div class="hero-glow"></div>
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow-tag"><span class="dot"></span> v2.4 out now — Fabric 1.21 support</div>
+        <h1>PvP without the <em>bloat.</em></h1>
+        <p class="lead">MyroClient is a lightweight Fabric mod and launcher built for players who just want to fight. Modern UI, zero clutter, built for the servers you actually play on.</p>
+        <div class="hero-actions">
+          <a href="#download" class="btn btn-primary btn-lg" id="heroDownloadBtn">
+            <span class="btn-icon os-icon" aria-hidden="true"></span>
+            <span class="btn-label">Download for Windows</span>
+          </a>
+          <a href="#features" class="btn btn-ghost btn-lg">See what's inside</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat"><div class="num" id="statDownloads">0</div><div class="label">Downloads</div></div>
+          <div class="stat"><div class="num"><span id="statOnline">0</span></div><div class="label">Players online now</div></div>
+          <div class="stat"><div class="num">100%</div><div class="label">Open source</div></div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-cycle" id="heroCycle" aria-hidden="true">
+          <span class="cycle-word" data-word="1"><span class="bar"></span>Fast</span>
+          <span class="cycle-word" data-word="2"><span class="bar"></span>PvP</span>
+          <span class="cycle-word" data-word="3"><span class="bar"></span>Optimized</span>
+          <span class="cycle-word" data-word="4"><span class="bar"></span>Open source</span>
+        </div>
+        <div class="hero-mark"><img src="assets/logo-nobg.png" alt="MyroClient mark"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Features</span>
+        <h2>Everything you need. Nothing you don't.</h2>
+        <p>MyroClient strips PvP clients back down to what actually matters in a fight — then adds the parts every modern client is missing.</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card f-big">
+          <img class="bolt-bg" src="assets/logo-nobg.png" alt="">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg></div>
+          <h3>Lightweight by design</h3>
+          <p>No background bloat, no telemetry, no fifty modules you'll never touch. MyroClient runs light so your FPS stays high when it counts — mid-fight, not in a menu.</p>
+        </div>
+        <div class="feature-card f-med">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+          <h3>Modern UI</h3>
+          <p>A clean, redesigned interface that doesn't look like it's from 2016.</p>
+        </div>
+        <div class="feature-card f-med">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18.5 21 12 16.5 5.5 21l2-7.5L2 9h7z"/></svg></div>
+          <h3>Built for PvP</h3>
+          <p>Crosshair tweaks, hit indicators and combat-focused HUD elements — the stuff that actually wins fights.</p>
+        </div>
+        <div class="feature-card f-half">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+          <h3>Easy install &amp; customization</h3>
+          <p>Download, run, done. Every setting lives in one clean panel — reorder your HUD, tweak keybinds, swap modules without touching a config file.</p>
+        </div>
+        <div class="feature-card f-half">
+          <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <h3>Safe &amp; open source</h3>
+          <p>The full source is public. No hidden network calls, no obfuscated jars — inspect it yourself or trust the community that already has.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUPPORTED SERVERS -->
+  <section id="servers">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Compatibility</span>
+        <h2>Built for the servers you're already on</h2>
+        <p>MyroClient ships with presets tuned for the biggest modern PvP servers, so your HUD and modules are ready the moment you connect.</p>
+      </div>
+
+      <div class="server-grid reveal-stagger">
+        <div class="server-card">
+          <div class="server-logo"><img src="assets/hoplite.jpg" alt="Hoplite"></div>
+          <div class="server-name">Hoplite</div>
+          <div class="server-meta">UHC · Sumo · Bridge</div>
+        </div>
+        <div class="server-card">
+          <div class="server-logo"><img src="assets/uhcfr.jpg" alt="UHCFR"></div>
+          <div class="server-name">UHCFR</div>
+          <div class="server-meta">Hardcore UHC</div>
+        </div>
+        <div class="server-card">
+          <div class="server-logo"><img src="assets/pvphq.jpg" alt="PvP HQ"></div>
+          <div class="server-name">PvP HQ</div>
+          <div class="server-meta">Practice · Duels</div>
+        </div>
+        <div class="server-card">
+          <div class="server-logo"><img src="assets/mcpvp.jpg" alt="MCPvP"></div>
+          <div class="server-name">MCPvP</div>
+          <div class="server-meta">Factions · Skywars</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="kicker">Getting started</span>
+        <h2>Three steps. No config editing.</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h3>Download the launcher</h3>
+          <p>Grab MyroClient for Windows, macOS or Linux. One installer, no separate Fabric setup required.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h3>Pick your server preset</h3>
+          <p>Choose from built-in presets for major PvP servers, or start from a blank config and build your own.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h3>Launch and fight</h3>
+          <p>MyroClient boots straight into Fabric with your modules loaded. That's it — you're in.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section>
+    <div class="wrap">
+      <div class="stats-strip">
+        <div><div class="num mono" id="stripDownloads">0</div><div class="label">Total downloads</div></div>
+        <div><div class="num mono" id="stripOnline">0</div><div class="label">Online right now</div></div>
+        <div><div class="num mono">14</div><div class="label">Modules included</div></div>
+        <div><div class="num mono">1.21.x</div><div class="label">Latest supported</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="wrap about-grid">
+      <div class="about-card">
+        <div class="founder-row">
+          <div class="founder-skin" id="founderSkin">
+            <img src="https://mc-heads.net/body/Myronox/200" alt="Myronox skin render" loading="lazy" onerror="document.getElementById('founderSkin').classList.add('skin-fallback')">
+          </div>
+          <div>
+            <div class="founder-name">Myronox</div>
+            <div class="founder-role">Co-Founder</div>
+          </div>
+        </div>
+        <p class="bio">Myronox is the co-founder of MyroClient. Content creator behind <span class="inline-mono">@Myronox7</span>, building tools for the PvP community he makes videos for.</p>
+      </div>
+      <div class="about-copy">
+        <span class="kicker">About the project</span>
+        <h2>Made by a PvP player, for PvP players</h2>
+        <p>MyroClient started as a frustration with existing clients — too heavy, too cluttered, too many features nobody in a real fight actually uses. We stripped it down and rebuilt it around one goal: get out of your way.</p>
+        <p>Every module is opt-in, every setting is one click away, and the entire codebase is open for anyone to read, fork, or audit. No hidden telemetry, no locked-behind-a-paywall features — just a fast, modern client built around how modern PvP servers actually play.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="download" class="cta-section">
+    <div class="wrap">
+      <h2>Ready to fight lighter?</h2>
+      <p>Free, open source, and ready in under two minutes.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn btn-primary btn-lg dl-trigger os-btn" id="btnMyroClient" data-paths='{"windows":"","mac":"","linux":"","android":""}' data-base-label="Download MyroClient">
+          <span class="btn-icon os-icon" aria-hidden="true"></span>
+          <span class="btn-label">Download MyroClient</span>
+        </a>
+        <a href="#" class="btn btn-ghost btn-lg dl-trigger" id="btnFabric" data-dl-label="Fabric Loader — standalone .jar">
+          <span class="btn-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+              <path fill="#38342a" d="M9 1h1v1h1v1h1v1h1v1h1v1h1v2h-1v1h-2v1h-1v1h-1v1H9v2H8v1H6v-1H5v-1H4v-1H3v-1H2V9h1V8h1V7h1V6h1V5h1V4h1V2h1z"/>
+              <path fill="#dbd0b4" d="M4 9V8h1V7h1V6h1l1-1V4h1V2h1v1h1v1h1v1h1v1l-1 1-2 3-3 3-3-3z"/>
+              <path fill="#bcb29c" d="M9 3h1v1h1v1h1v1h1v1h-1L9 4zM10 10h1V9h1V7h-1v1h-1zH8v2h1v-1h1zM8 12H7v1h1z"/>
+              <path fill="#c6bca5" d="M7 5h1v2h3v1H9V6H7zM6 8h1v2h2V9H6z"/>
+              <path fill="#aea694" d="M3 9v1l3 3h1v-1H6v-1H5v-1H4V9z"/>
+              <path fill="#9a927e" d="M3 10v1h2v2h2v1H6v-2H4v-2z"/>
+              <path fill="#807a6d" d="M13 7h1v1h-1z"/>
+              <path fill="#aea694" d="M9 4v1h2v2h1V6h-2V4z"/>
+            </svg>
+          </span>
+          <span class="btn-label">Download Fabric Standalone</span>
+        </a>
+      </div>
+      <div class="social-row">
+        <a href="https://youtube.com/@Myronox7" target="_blank" rel="noopener" class="social-chip">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.5V8.5L15.8 12l-6.2 3.5Z"/></svg>
+          <span class="platform">YouTube</span> @Myronox7
+        </a>
+        <a href="https://tiktok.com/@myronox" target="_blank" rel="noopener" class="social-chip">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.8a4.3 4.3 0 0 1-3-3.8h-3.3v13.7a2.6 2.6 0 1 1-1.9-2.5V9.7a5.9 5.9 0 1 0 5.2 5.9V9.4a7.6 7.6 0 0 0 4.4 1.4V7.5a4.3 4.3 0 0 1-1.4-1.7Z"/></svg>
+          <span class="platform">TikTok</span> @myronox
+        </a>
+        <a href="#" target="_blank" rel="noopener" class="social-chip">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.6-4-1.6-.6-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.4 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+          <span class="platform">GitHub</span> source code
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="footer-brand">
+    <img src="assets/logo-nobg.png" alt="">
+    <span>© 2026 MyroClient. Not affiliated with Mojang or Microsoft.</span>
+  </div>
+  <div class="footer-links">
+    <a href="#features">Features</a>
+    <a href="#servers">Servers</a>
+    <a href="#">GitHub</a>
+    <a href="#">Discord</a>
+  </div>
+</footer>
+
+<script>
+  // ---------- Hero word cycle (desktop only, loops continuously) ----------
+  (function initHeroCycle() {
+    const cycle = document.getElementById('heroCycle');
+    if (!cycle) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+
+    const words = Array.from(cycle.querySelectorAll('.cycle-word'));
+    const stepMs = 2400; // matches the 2.6s CSS animation cadence, slight overlap
+    let i = 0;
+
+    function playNext() {
+      words.forEach(w => w.classList.remove('show'));
+      // force reflow so the animation restarts cleanly
+      void words[i].offsetWidth;
+      words[i].classList.add('show');
+      i = (i + 1) % words.length;
+    }
+
+    playNext();
+    setInterval(playNext, stepMs);
+  })();
+
+  // ---------- OS detection + per-platform icon/label + OS picker ----------
+  const OS_ICONS = {
+    windows: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5L10 4.4V11.4H3V5.5ZM11 4.3L21 3V11.3H11V4.3ZM3 12.4H10V19.5L3 18.4V12.4ZM11 12.4H21V20.6L11 19.3V12.4Z"/></svg>',
+    mac: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.54c-.03-2.7 2.2-4 2.3-4.06-1.25-1.83-3.2-2.08-3.9-2.11-1.66-.17-3.24.98-4.08.98-.84 0-2.13-.95-3.5-.93-1.8.03-3.47 1.05-4.4 2.66-1.87 3.24-.48 8.04 1.35 10.67.9 1.29 1.96 2.73 3.36 2.68 1.35-.05 1.86-.87 3.5-.87 1.63 0 2.1.87 3.53.85 1.46-.03 2.38-1.32 3.27-2.62 1.04-1.5 1.46-2.96 1.48-3.03-.03-.02-2.83-1.09-2.86-4.32zM14.6 4.7c.74-.9 1.24-2.15 1.1-3.4-1.07.05-2.36.72-3.13 1.62-.68.79-1.28 2.07-1.12 3.28 1.19.1 2.4-.6 3.15-1.5z"/></svg>',
+    linux: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 2c-1.6 0-2.6 1.4-2.6 3.1 0 1-.2 1.6-.6 2.3-.4.8-1 1.5-1.6 2.4-1.1 1.6-1.9 3.1-1.9 4.9 0 1 .3 1.9.8 2.6-.3.2-.6.5-.7.9-.2.5 0 1 .4 1.3.1.3 0 .5-.1.8-.1.4.1.8.5.9.9.4 2 .6 3.2.6 1.3 0 2.4-.2 3.3-.6.4-.2.6-.6.5-1-.1-.3-.2-.5-.1-.7.4-.3.6-.8.4-1.3-.1-.4-.4-.7-.7-.9.5-.7.8-1.6.8-2.6 0-1.8-.8-3.3-1.9-4.9-.6-.9-1.2-1.6-1.6-2.4-.4-.7-.6-1.3-.6-2.3C15.1 3.4 14.1 2 12.5 2zm-1 3.4c.3 0 .6.4.6.9s-.3.9-.6.9-.6-.4-.6-.9.3-.9.6-.9zm2 0c.3 0 .6.4.6.9s-.3.9-.6.9-.6-.4-.6-.9.3-.9.6-.9z"/></svg>',
+    generic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg>'
+  };
+  const OS_LABELS = {
+    windows: 'Windows',
+    mac: 'macOS',
+    linux: 'Linux',
+    android: 'Android',
+    ios: 'iOS'
+  };
+
+  function detectOS() {
+    const ua = navigator.userAgent || '';
+    if (/android/i.test(ua)) return 'android';
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+    if (/Mac OS X|Macintosh/i.test(ua)) return 'mac';
+    if (/Windows/i.test(ua)) return 'windows';
+    if (/Linux/i.test(ua)) return 'linux';
+    return 'unknown';
+  }
+
+  const currentOS = detectOS();
+  const isDesktopOS = currentOS === 'windows' || currentOS === 'mac' || currentOS === 'linux';
+
+  function applyOSToButton(btn) {
+    const iconSlot = btn.querySelector('.os-icon');
+    const labelSlot = btn.querySelector('.btn-label');
+    const baseLabel = btn.dataset.baseLabel || (labelSlot ? labelSlot.textContent.trim() : '');
+
+    if (isDesktopOS) {
+      iconSlot.innerHTML = OS_ICONS[currentOS];
+      labelSlot.textContent = baseLabel + ' for ' + OS_LABELS[currentOS];
+      btn.dataset.resolvedOs = currentOS;
+    } else {
+      // Android / iOS / unknown: neutral download icon, opens the OS picker instead
+      iconSlot.innerHTML = OS_ICONS.generic;
+      labelSlot.textContent = baseLabel;
+      btn.dataset.resolvedOs = '';
+    }
+  }
+
+  document.querySelectorAll('.os-btn').forEach(applyOSToButton);
+
+  // Hero button mirrors the same detected OS in its label/icon (it just scrolls to #download).
+  (function initHeroButtonLabel() {
+    const heroBtn = document.getElementById('heroDownloadBtn');
+    if (!heroBtn) return;
+    const iconSlot = heroBtn.querySelector('.os-icon');
+    const labelSlot = heroBtn.querySelector('.btn-label');
+    if (isDesktopOS) {
+      iconSlot.innerHTML = OS_ICONS[currentOS];
+      labelSlot.textContent = 'Download for ' + OS_LABELS[currentOS];
+    } else {
+      iconSlot.innerHTML = OS_ICONS.generic;
+      labelSlot.textContent = 'Download MyroClient';
+    }
+  })();
+
+  // ---------- OS picker modal (Android / iOS / unknown desktop) ----------
+  const osPicker = document.getElementById('osPicker');
+  const osPickerOptions = document.getElementById('osPickerOptions');
+  const osPickerClose = document.getElementById('osPickerClose');
+  let pendingPickerBtn = null;
+
+  const PICKER_CHOICES = [
+    { key: 'windows', label: 'Windows' },
+    { key: 'mac', label: 'macOS' },
+    { key: 'linux', label: 'Linux' }
+  ];
+
+  function openOSPicker(forBtn) {
+    pendingPickerBtn = forBtn;
+    osPickerOptions.innerHTML = '';
+    PICKER_CHOICES.forEach(choice => {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'os-option';
+      el.innerHTML = '<span class="os-icon">' + OS_ICONS[choice.key] + '</span><span>' + choice.label + '</span>';
+      el.addEventListener('click', () => {
+        const targetBtn = pendingPickerBtn;
+        closeOSPicker();
+        triggerDownload(targetBtn, choice.key);
+      });
+      osPickerOptions.appendChild(el);
+    });
+    osPicker.classList.add('show');
+  }
+  function closeOSPicker() {
+    osPicker.classList.remove('show');
+    pendingPickerBtn = null;
+  }
+  osPickerClose.addEventListener('click', closeOSPicker);
+  osPicker.addEventListener('click', (e) => { if (e.target === osPicker) closeOSPicker(); });
+
+  // ---------- Full-screen download overlay (Modrinth-style) ----------
+  const dlOverlay = document.getElementById('dlOverlay');
+  const dlOverlayText = document.getElementById('dlOverlayText');
+  const dlOverlaySub = document.getElementById('dlOverlaySub');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function triggerDownload(btn, forcedOS) {
+    const paths = btn.dataset.paths ? JSON.parse(btn.dataset.paths) : null;
+    const osKey = forcedOS || btn.dataset.resolvedOs || '';
+    const path = paths ? (paths[osKey] || '') : (btn.getAttribute('href') || '');
+    const label = osKey
+      ? (btn.dataset.baseLabel || 'MyroClient') + ' — ' + OS_LABELS[osKey]
+      : (btn.dataset.dlLabel || btn.querySelector('.btn-label')?.textContent.trim() || btn.textContent.trim());
+
+    if (reduceMotion) {
+      if (path) window.location.href = path;
+      return;
+    }
+
+    dlOverlayText.textContent = 'Starting download…';
+    dlOverlaySub.textContent = label;
+    dlOverlay.classList.add('show');
+
+    setTimeout(() => { dlOverlayText.textContent = 'Downloaded'; }, 1050);
+    setTimeout(() => {
+      dlOverlay.classList.remove('show');
+      if (path) window.location.href = path; // path intentionally empty for now
+    }, 1500);
+  }
+
+  document.querySelectorAll('.dl-trigger').forEach(btn => {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+
+      // OS-aware buttons on a non-desktop / unknown platform: ask which OS first.
+      if (btn.classList.contains('os-btn') && !isDesktopOS) {
+        openOSPicker(btn);
+        return;
+      }
+
+      triggerDownload(btn);
+    });
+  });
+
+  // ---------- Mobile hamburger menu ----------
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobileMenu');
+  const menuScrim = document.getElementById('menuScrim');
+  function closeMenu() {
+    hamburger.classList.remove('open');
+    hamburger.setAttribute('aria-expanded', 'false');
+    mobileMenu.classList.remove('open');
+    menuScrim.classList.remove('open');
+  }
+  function toggleMenu() {
+    const open = mobileMenu.classList.toggle('open');
+    hamburger.classList.toggle('open', open);
+    hamburger.setAttribute('aria-expanded', String(open));
+    menuScrim.classList.toggle('open', open);
+  }
+  hamburger.addEventListener('click', toggleMenu);
+  menuScrim.addEventListener('click', closeMenu);
+  mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+
+  // ---------- Scroll reveal ----------
+  const revealTargets = document.querySelectorAll('.section-head, .feature-grid, .server-grid, .steps, .stats-strip, .about-grid, .cta-section');
+  revealTargets.forEach(el => {
+    el.classList.add('reveal');
+    if (el.classList.contains('server-grid') || el.classList.contains('feature-grid') || el.classList.contains('steps')) {
+      el.classList.add('reveal-stagger');
+    }
+  });
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealTargets.forEach(el => io.observe(el));
+
+  // Safety net: if a reveal target is already in (or near) the viewport at
+  // load time (e.g. deep link to a hash, fast scroll, or a slow observer
+  // callback), make sure it isn't left permanently invisible.
+  function revealIfNearViewport() {
+    revealTargets.forEach(el => {
+      if (el.classList.contains('in')) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight + 200 && rect.bottom > -200) {
+        el.classList.add('in');
+      }
+    });
+  }
+  window.addEventListener('load', revealIfNearViewport);
+  setTimeout(revealIfNearViewport, 1200);
+  // Absolute fallback: never leave content invisible for more than a few seconds.
+  setTimeout(() => revealTargets.forEach(el => el.classList.add('in')), 4000);
+
+  // (legacy per-button ripple removed — replaced by full-screen download overlay above)
+
+  // Theme toggle
+  const toggle = document.getElementById('themeToggle');
+  const root = document.documentElement;
+  const saved = localStorage.getItem('myroclient-theme');
+  if (saved === 'light') root.classList.add('light');
+  toggle.addEventListener('click', () => {
+    root.classList.toggle('light');
+    localStorage.setItem('myroclient-theme', root.classList.contains('light') ? 'light' : 'dark');
+  });
+
+  // Fake but stable stats (seeded, so they don't reshuffle on reload)
+  function seededRandom(seed) {
+    let x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }
+  const daySeed = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  const downloads = 40000 + Math.floor(seededRandom(daySeed) * 15000);
+  const online = 300 + Math.floor(seededRandom(daySeed + 1) * 900);
+
+  function animateNum(el, target, suffix = '') {
+    let start = 0;
+    const dur = 1200;
+    const startTime = performance.now();
+    function tick(now) {
+      const p = Math.min((now - startTime) / dur, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.floor(eased * target).toLocaleString() + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  animateNum(document.getElementById('statDownloads'), downloads, '+');
+  animateNum(document.getElementById('statOnline'), online);
+  animateNum(document.getElementById('stripDownloads'), downloads, '+');
+  animateNum(document.getElementById('stripOnline'), online);
+</script>
+
+</body>
+</html>
