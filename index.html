@@ -321,6 +321,11 @@
     border-radius: 50%;
     background: #3ecf6e;
     box-shadow: 0 0 8px #3ecf6e;
+    transition: background .2s ease, box-shadow .2s ease;
+  }
+  .eyebrow-tag .dot.down {
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
   }
 
   .hero h1 {
@@ -729,6 +734,11 @@
     opacity: 0;
     transform: scale(0.6);
   }
+  .dl-icon .dl-fail {
+    opacity: 0;
+    transform: scale(0.6);
+    color: #ef4444;
+  }
   #dlOverlay.show .dl-icon .dl-arrow {
     animation: dlArrowDrop 1.15s ease forwards;
   }
@@ -736,6 +746,12 @@
     animation: dlCheckIn .35s ease forwards;
     animation-delay: 1.05s;
   }
+  #dlOverlay.show.fail .dl-icon .dl-check { animation: none; opacity: 0; }
+  #dlOverlay.show.fail .dl-icon .dl-fail {
+    animation: dlCheckIn .35s ease forwards;
+    animation-delay: 1.05s;
+  }
+  #dlOverlay.show.fail .dl-ring .fill { stroke: #ef4444; }
   @keyframes dlArrowDrop {
     0% { transform: translateY(-6px); opacity: 1; }
     75% { transform: translateY(4px); opacity: 1; }
@@ -888,6 +904,7 @@
       <span class="dl-icon">
         <svg class="dl-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg>
         <svg class="dl-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; top:0; left:0;"><path d="M20 6L9 17l-5-5"/></svg>
+        <svg class="dl-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; top:0; left:0;"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </span>
     </div>
     <div class="dl-overlay-text" id="dlOverlayText">Starting download…</div>
@@ -950,7 +967,7 @@
     <div class="hero-glow"></div>
     <div class="wrap hero-grid">
       <div>
-        <div class="eyebrow-tag"><span class="dot"></span> v1.0 out now — Fabric 26.3 support</div>
+        <div class="eyebrow-tag" id="statusTag"><span class="dot" id="statusDot"></span> <span id="statusText">v1.0 out now — Fabric 26.3 support</span></div>
         <h1>PvP without the <em>bloat.</em></h1>
         <p class="lead">MyroClient is a lightweight Fabric mod and launcher built for players who just want to fight. Modern UI, zero clutter, built for the servers you actually play on.</p>
         <div class="hero-actions">
@@ -1174,6 +1191,28 @@
 </footer>
 
 <script>
+  // ============================================================
+  // LAUNCHER STATUS — flip this to switch the whole site.
+  // "Yes" = launcher is live, downloads work normally.
+  // "No"  = launcher is down, downloads show a failure animation.
+  // ============================================================
+  const LAUNCHER_LIVE = "No"; // <-- change to "No" to take it down
+
+  const launcherIsLive = LAUNCHER_LIVE === "Yes";
+
+  (function applyLauncherStatus() {
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    if (!dot || !text) return;
+    if (launcherIsLive) {
+      dot.classList.remove('down');
+      text.textContent = 'v1.0 out now — Fabric 26.3 support';
+    } else {
+      dot.classList.add('down');
+      text.textContent = 'Launcher is currently down';
+    }
+  })();
+
   // ---------- Hero word cycle (desktop only, loops continuously) ----------
   (function initHeroCycle() {
     const cycle = document.getElementById('heroCycle');
@@ -1309,6 +1348,20 @@
       ? (btn.dataset.baseLabel || 'MyroClient') + ' — ' + OS_LABELS[osKey]
       : (btn.dataset.dlLabel || btn.querySelector('.btn-label')?.textContent.trim() || btn.textContent.trim());
 
+    if (!launcherIsLive) {
+      if (reduceMotion) {
+        dlOverlayText.textContent = 'Launcher is currently down';
+        dlOverlaySub.textContent = 'Please check back later';
+        return;
+      }
+      dlOverlay.classList.add('show', 'fail');
+      dlOverlayText.textContent = 'Starting download…';
+      dlOverlaySub.textContent = label;
+      setTimeout(() => { dlOverlayText.textContent = 'Launcher is currently down'; dlOverlaySub.textContent = 'Please check back later'; }, 1050);
+      setTimeout(() => { dlOverlay.classList.remove('show', 'fail'); }, 2200);
+      return;
+    }
+
     if (reduceMotion) {
       if (path) window.location.href = path;
       return;
@@ -1412,8 +1465,8 @@
     return x - Math.floor(x);
   }
   const daySeed = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-  const downloads = 40000 + Math.floor(seededRandom(daySeed) * 15000);
-  const online = 300 + Math.floor(seededRandom(daySeed + 1) * 900);
+  const downloads = 654 + Math.floor(seededRandom(daySeed) * (1478 - 654));
+  const online = 12 + Math.floor(seededRandom(daySeed + 1) * 60);
 
   function animateNum(el, target, suffix = '') {
     let start = 0;
