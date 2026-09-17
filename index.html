@@ -850,6 +850,12 @@
   .os-option:hover { border-color: var(--orange); }
   .os-option:active { transform: scale(0.98); }
   .os-option .os-icon { width: 20px; height: 20px; color: var(--orange); flex-shrink: 0; }
+  .os-option-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .os-option-disabled:hover { border-color: var(--border); }
+  .os-option-disabled em { font-style: normal; color: var(--text-mute); font-weight: 500; font-size: 0.82em; }
 
   footer {
     padding: 40px 0;
@@ -1137,27 +1143,6 @@
     <div class="wrap">
       <h2>Ready to fight lighter?</h2>
       <p>Free, open source, and ready in under two minutes.</p>
-      <div class="cta-actions">
-        <a href="#" class="btn btn-primary btn-lg dl-trigger os-btn" id="btnMyroClient" data-paths='{"windows":"","mac":"","linux":"","android":""}' data-base-label="Download MyroClient">
-          <span class="btn-icon os-icon" aria-hidden="true"></span>
-          <span class="btn-label">Download MyroClient</span>
-        </a>
-        <a href="#" class="btn btn-ghost btn-lg dl-trigger" id="btnFabric" data-dl-label="Fabric Loader — standalone .jar">
-          <span class="btn-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-              <path fill="#38342a" d="M9 1h1v1h1v1h1v1h1v1h1v1h1v2h-1v1h-2v1h-1v1h-1v1H9v2H8v1H6v-1H5v-1H4v-1H3v-1H2V9h1V8h1V7h1V6h1V5h1V4h1V2h1z"/>
-              <path fill="#dbd0b4" d="M4 9V8h1V7h1V6h1l1-1V4h1V2h1v1h1v1h1v1h1v1l-1 1-2 3-3 3-3-3z"/>
-              <path fill="#bcb29c" d="M9 3h1v1h1v1h1v1h1v1h-1L9 4zM10 10h1V9h1V7h-1v1h-1zH8v2h1v-1h1zM8 12H7v1h1z"/>
-              <path fill="#c6bca5" d="M7 5h1v2h3v1H9V6H7zM6 8h1v2h2V9H6z"/>
-              <path fill="#aea694" d="M3 9v1l3 3h1v-1H6v-1H5v-1H4V9z"/>
-              <path fill="#9a927e" d="M3 10v1h2v2h2v1H6v-2H4v-2z"/>
-              <path fill="#807a6d" d="M13 7h1v1h-1z"/>
-              <path fill="#aea694" d="M9 4v1h2v2h1V6h-2V4z"/>
-            </svg>
-          </span>
-          <span class="btn-label">Download Fabric Standalone</span>
-        </a>
-      </div>
       <div class="social-row">
         <a href="https://youtube.com/@Myronox7" target="_blank" rel="noopener" class="social-chip">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.5V8.5L15.8 12l-6.2 3.5Z"/></svg>
@@ -1198,7 +1183,13 @@
   // ============================================================
   const LAUNCHER_LIVE = "No"; // <-- change to "No" to take it down
 
+  // "Yes" = only the Fabric Standalone option works; Windows/macOS/Linux
+  // launcher picks are shown but disabled (they don't start any download).
+  // "No"  = all four options work normally.
+  const ONLY_FABRIC = "No"; // <-- change to "Yes" to restrict downloads to Fabric only
+
   const launcherIsLive = LAUNCHER_LIVE === "Yes";
+  const onlyFabric = ONLY_FABRIC === "Yes";
 
   (function applyLauncherStatus() {
     const dot = document.getElementById('statusDot');
@@ -1241,8 +1232,10 @@
     windows: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5L10 4.4V11.4H3V5.5ZM11 4.3L21 3V11.3H11V4.3ZM3 12.4H10V19.5L3 18.4V12.4ZM11 12.4H21V20.6L11 19.3V12.4Z"/></svg>',
     mac: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.54c-.03-2.7 2.2-4 2.3-4.06-1.25-1.83-3.2-2.08-3.9-2.11-1.66-.17-3.24.98-4.08.98-.84 0-2.13-.95-3.5-.93-1.8.03-3.47 1.05-4.4 2.66-1.87 3.24-.48 8.04 1.35 10.67.9 1.29 1.96 2.73 3.36 2.68 1.35-.05 1.86-.87 3.5-.87 1.63 0 2.1.87 3.53.85 1.46-.03 2.38-1.32 3.27-2.62 1.04-1.5 1.46-2.96 1.48-3.03-.03-.02-2.83-1.09-2.86-4.32zM14.6 4.7c.74-.9 1.24-2.15 1.1-3.4-1.07.05-2.36.72-3.13 1.62-.68.79-1.28 2.07-1.12 3.28 1.19.1 2.4-.6 3.15-1.5z"/></svg>',
     linux: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 2c-1.6 0-2.6 1.4-2.6 3.1 0 1-.2 1.6-.6 2.3-.4.8-1 1.5-1.6 2.4-1.1 1.6-1.9 3.1-1.9 4.9 0 1 .3 1.9.8 2.6-.3.2-.6.5-.7.9-.2.5 0 1 .4 1.3.1.3 0 .5-.1.8-.1.4.1.8.5.9.9.4 2 .6 3.2.6 1.3 0 2.4-.2 3.3-.6.4-.2.6-.6.5-1-.1-.3-.2-.5-.1-.7.4-.3.6-.8.4-1.3-.1-.4-.4-.7-.7-.9.5-.7.8-1.6.8-2.6 0-1.8-.8-3.3-1.9-4.9-.6-.9-1.2-1.6-1.6-2.4-.4-.7-.6-1.3-.6-2.3C15.1 3.4 14.1 2 12.5 2zm-1 3.4c.3 0 .6.4.6.9s-.3.9-.6.9-.6-.4-.6-.9.3-.9.6-.9zm2 0c.3 0 .6.4.6.9s-.3.9-.6.9-.6-.4-.6-.9.3-.9.6-.9z"/></svg>',
-    generic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg>'
+    generic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg>',
+    fabric: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill="#38342a" d="M9 1h1v1h1v1h1v1h1v1h1v1h1v2h-1v1h-2v1h-1v1h-1v1H9v2H8v1H6v-1H5v-1H4v-1H3v-1H2V9h1V8h1V7h1V6h1V5h1V4h1V2h1z"/><path fill="#dbd0b4" d="M4 9V8h1V7h1V6h1l1-1V4h1V2h1v1h1v1h1v1h1v1l-1 1-2 3-3 3-3-3z"/><path fill="#bcb29c" d="M9 3h1v1h1v1h1v1h1v1h-1L9 4zM10 10h1V9h1V7h-1v1h-1zH8v2h1v-1h1zM8 12H7v1h1z"/><path fill="#c6bca5" d="M7 5h1v2h3v1H9V6H7zM6 8h1v2h2V9H6z"/><path fill="#aea694" d="M3 9v1l3 3h1v-1H6v-1H5v-1H4V9z"/><path fill="#9a927e" d="M3 10v1h2v2h2v1H6v-2H4v-2z"/><path fill="#807a6d" d="M13 7h1v1h-1z"/><path fill="#aea694" d="M9 4v1h2v2h1V6h-2V4z"/></svg>'
   };
+  const MC_VERSIONS = ['1.8.9', '1.21.11', '26.1', '26.2', '26.3'];
   const OS_LABELS = {
     windows: 'Windows',
     mac: 'macOS',
@@ -1298,35 +1291,68 @@
     }
   })();
 
-  // ---------- OS picker modal (Android / iOS / unknown desktop) ----------
+  // ---------- Platform picker modal (always shown on any download click) ----------
   const osPicker = document.getElementById('osPicker');
   const osPickerOptions = document.getElementById('osPickerOptions');
   const osPickerClose = document.getElementById('osPickerClose');
+  const osPickerTitle = document.querySelector('.os-picker-head span');
   let pendingPickerBtn = null;
 
-  const PICKER_CHOICES = [
-    { key: 'windows', label: 'Windows' },
-    { key: 'mac', label: 'macOS' },
-    { key: 'linux', label: 'Linux' }
+  const PLATFORM_CHOICES = [
+    { key: 'windows', label: 'Windows', icon: 'windows', disabledByFabric: true },
+    { key: 'mac', label: 'macOS', icon: 'mac', disabledByFabric: true },
+    { key: 'linux', label: 'Linux', icon: 'linux', disabledByFabric: true },
+    { key: 'fabric', label: 'Fabric Standalone', icon: 'fabric', disabledByFabric: false }
   ];
 
   function openOSPicker(forBtn) {
     pendingPickerBtn = forBtn;
+    osPickerTitle.textContent = 'Choose your platform';
     osPickerOptions.innerHTML = '';
-    PICKER_CHOICES.forEach(choice => {
+    PLATFORM_CHOICES.forEach(choice => {
       const el = document.createElement('button');
       el.type = 'button';
       el.className = 'os-option';
-      el.innerHTML = '<span class="os-icon">' + OS_ICONS[choice.key] + '</span><span>' + choice.label + '</span>';
+      const isDisabled = onlyFabric && choice.disabledByFabric;
+      if (isDisabled) {
+        el.classList.add('os-option-disabled');
+        el.setAttribute('aria-disabled', 'true');
+      }
+      el.innerHTML = '<span class="os-icon">' + OS_ICONS[choice.icon] + '</span><span>' + choice.label + (isDisabled ? ' <em>(unavailable)</em>' : '') + '</span>';
       el.addEventListener('click', () => {
+        if (isDisabled) return;
         const targetBtn = pendingPickerBtn;
-        closeOSPicker();
-        triggerDownload(targetBtn, choice.key);
+        if (choice.key === 'fabric') {
+          openVersionPicker(targetBtn);
+        } else {
+          closeOSPicker();
+          triggerDownload(targetBtn, choice.key);
+        }
       });
       osPickerOptions.appendChild(el);
     });
     osPicker.classList.add('show');
   }
+
+  function openVersionPicker(forBtn) {
+    pendingPickerBtn = forBtn;
+    osPickerTitle.textContent = 'Choose Minecraft version';
+    osPickerOptions.innerHTML = '';
+    MC_VERSIONS.forEach(version => {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'os-option';
+      el.innerHTML = '<span class="os-icon">' + OS_ICONS.fabric + '</span><span>' + version + '</span>';
+      el.addEventListener('click', () => {
+        const targetBtn = pendingPickerBtn;
+        closeOSPicker();
+        triggerDownload(targetBtn, 'fabric', version);
+      });
+      osPickerOptions.appendChild(el);
+    });
+    osPicker.classList.add('show');
+  }
+
   function closeOSPicker() {
     osPicker.classList.remove('show');
     pendingPickerBtn = null;
@@ -1340,13 +1366,14 @@
   const dlOverlaySub = document.getElementById('dlOverlaySub');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  function triggerDownload(btn, forcedOS) {
+  function triggerDownload(btn, forcedOS, mcVersion) {
     const paths = btn.dataset.paths ? JSON.parse(btn.dataset.paths) : null;
     const osKey = forcedOS || btn.dataset.resolvedOs || '';
     const path = paths ? (paths[osKey] || '') : (btn.getAttribute('href') || '');
-    const label = osKey
-      ? (btn.dataset.baseLabel || 'MyroClient') + ' — ' + OS_LABELS[osKey]
+    let label = osKey
+      ? (btn.dataset.baseLabel || 'MyroClient') + ' — ' + (OS_LABELS[osKey] || 'Fabric Standalone')
       : (btn.dataset.dlLabel || btn.querySelector('.btn-label')?.textContent.trim() || btn.textContent.trim());
+    if (mcVersion) label = 'Fabric Standalone — ' + mcVersion;
 
     if (!launcherIsLive) {
       if (reduceMotion) {
@@ -1381,14 +1408,7 @@
   document.querySelectorAll('.dl-trigger').forEach(btn => {
     btn.addEventListener('click', function (e) {
       e.preventDefault();
-
-      // OS-aware buttons on a non-desktop / unknown platform: ask which OS first.
-      if (btn.classList.contains('os-btn') && !isDesktopOS) {
-        openOSPicker(btn);
-        return;
-      }
-
-      triggerDownload(btn);
+      openOSPicker(btn);
     });
   });
 
