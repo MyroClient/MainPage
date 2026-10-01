@@ -187,6 +187,24 @@ footer .f-links{display:flex;gap:22px}
   *{animation-duration:.001ms!important;animation-delay:0s!important;transition-duration:.001ms!important}
   .tail{display:none}.mark-fill{opacity:1}.m-draw{stroke-dashoffset:0;fill-opacity:1}
 }
+
+/* ---- Account modal */
+.acc-f{display:grid;gap:12px;margin-top:18px}
+.acc-f label{display:grid;gap:6px;font-size:.85rem;color:var(--dim)}
+.acc-f input{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--text);font:inherit;font-size:1rem}
+.acc-f input:focus{outline:2px solid var(--accent);border-color:transparent}
+.acc-msg{min-height:1.2em;font-size:.88rem;color:#ff8e8e;margin-top:10px}
+.acc-msg.ok{color:#7be0a0}
+.acc-sw{margin-top:14px;font-size:.88rem;color:var(--dim)}
+.acc-sw button{background:none;border:0;color:var(--accent2);font:inherit;cursor:pointer;padding:0;text-decoration:underline}
+
+.pm{margin-top:-2px}
+.pm-bars{display:flex;gap:6px}
+.pm-bars i{flex:1;height:8px;border-radius:2px;background:var(--line);transition:background .2s}
+.pm-row{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:.88rem}
+.pm-ico{width:28px;height:28px;flex:none;image-rendering:pixelated}
+.pm-lab{font-weight:700}
+.pm-hint{color:var(--dim);font-size:.8rem;margin-top:4px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -203,6 +221,7 @@ footer .f-links{display:flex;gap:22px}
       <li><a href="#pvphq">PvPHQ</a></li>
       <li><a href="#versions">Versions</a></li>
       <li><a href="#faq">Support</a></li>
+      <li><a href="#account" class="acc-open">Account</a></li>
       <li class="menu-dl"><button class="btn btn-main btn-lg dl-open">Download</button></li>
     </ul>
     <button class="btn btn-main dl-open">Download</button>
@@ -617,6 +636,22 @@ c-3.53994,-2.2446 -4.82651,-5.44012 -6.13125,-9.2236c-0.60542,-1.64566 -4.26299,
   </div>
 </div>
 
+<div class="modal" id="accModal" aria-hidden="true">
+  <div class="card">
+    <div class="card-h"><h3 id="accTitle">Create account</h3><button class="x" id="accClose" aria-label="Close">&times;</button></div>
+    <p style="color:var(--dim);margin-top:8px;font-size:.95rem">One Myro account for your friends list. Use the same email and password in the launcher.</p>
+    <div class="acc-f">
+      <label>Email<input id="accE" type="email" autocomplete="email"></label>
+      <label>Password<input id="accP" type="password" autocomplete="new-password" placeholder="8+ chars, capital, 2 numbers, symbol"></label>
+      <div class="pm" id="accMeter"><div class="pm-bars"><i></i><i></i><i></i></div><div class="pm-row"><span class="pm-ico" id="pmIco"></span><span class="pm-lab" id="pmLab"></span></div><div class="pm-hint" id="pmHint"></div></div>
+      <label id="accP2L">Confirm password<input id="accP2" type="password" autocomplete="new-password" placeholder="Type it again"></label>
+      <button class="btn btn-main btn-lg" id="accGo" type="button">Create account</button>
+    </div>
+    <div class="acc-msg" id="accMsg"></div>
+    <div class="acc-sw" id="accSw"></div>
+  </div>
+</div>
+
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="mp" transform="translate(50 50) scale(.2132) translate(-149.1 -138.84)"><path pathLength="1" d="M227.01855,46.18627c0.08496,-0.12187 0.71191,-0.55324 0.89941,-0.77134
 c1.68018,-1.95721 1.74609,-1.47106 2.43604,-3.74056c0.47168,-1.5484 3.8042,-4.91969 4.79736,-6.4013
 c2.25,-3.35782 4.38135,-6.7048 6.6416,-10.04358c0.28125,-0.4157 0.72217,-0.89043 1.17334,-1.11996
@@ -947,6 +982,89 @@ c-3.53994,-2.2446 -4.82651,-5.44012 -6.13125,-9.2236c-0.60542,-1.64566 -4.26299,
   [optOs,optFabric].forEach(a=>a.addEventListener('click',e=>{if(a.getAttribute('href')==='#')e.preventDefault();closeDl()}));
   const hd=document.querySelector('header');
   addEventListener('scroll',()=>hd.classList.toggle('scrolled',scrollY>10),{passive:true});
+
+
+  // ---- Myro account (Firebase Auth)
+  const FB_CFG={apiKey:'AIzaSyDXvy8CYXeGlQoBLVO6z2bjGst3mmR8k2I',authDomain:'myroclientfriendlist.firebaseapp.com',projectId:'myroclientfriendlist',appId:'1:492583451167:web:e6a9ae345c62865b01f32a'};
+  const accM=document.getElementById('accModal'),accE=document.getElementById('accE'),accP=document.getElementById('accP'),accP2=document.getElementById('accP2'),accP2L=document.getElementById('accP2L'),accMsg=document.getElementById('accMsg'),accGo=document.getElementById('accGo');
+  let accMode='up',fbAuth=null;
+  function accSay(t,ok){accMsg.textContent=t;accMsg.className='acc-msg'+(ok?' ok':'')}
+  function accRender(){
+    const up=accMode==='up';
+    document.getElementById('accTitle').textContent=up?'Create account':'Sign in';
+    accGo.textContent=up?'Create account':'Sign in';
+    accP.autocomplete=up?'new-password':'current-password';
+    document.getElementById('accSw').innerHTML=up?'Already have one? <button type="button" data-m="in">Sign in</button>':'New here? <button type="button" data-m="up">Create account</button>';
+    accP2L.style.display=up?'':'none';document.getElementById('accMeter').style.display=up?'':'none';accP2.value='';if(up)pwMeter();
+    accSay('');
+  }
+  document.getElementById('accSw').addEventListener('click',e=>{if(e.target.dataset.m){accMode=e.target.dataset.m;accRender()}});
+  function openAcc(){links.classList.remove('open');burger.setAttribute('aria-expanded','false');accRender();accM.classList.add('show');accM.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';setTimeout(()=>accE.focus(),50)}
+  function closeAcc(){accM.classList.remove('show');accM.setAttribute('aria-hidden','true');document.body.style.overflow=''}
+  document.querySelectorAll('.acc-open').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();openAcc()}));
+  document.getElementById('accClose').addEventListener('click',closeAcc);
+  accM.addEventListener('click',e=>{if(e.target===accM)closeAcc()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAcc()});
+  function loadFb(){return new Promise((res,rej)=>{
+    if(fbAuth)return res(fbAuth);
+    const L=['app','auth'];(function n(i){
+      if(i===L.length){firebase.initializeApp(FB_CFG);fbAuth=firebase.auth();return res(fbAuth)}
+      const sc=document.createElement('script');sc.src='https://www.gstatic.com/firebasejs/10.12.2/firebase-'+L[i]+'-compat.js';
+      sc.onload=()=>n(i+1);sc.onerror=()=>rej(new Error('load'));document.head.appendChild(sc)})(0)})}
+
+  // ---- Password strength meter
+  const PX={
+    coal:{p:{1:'#15151a',2:'#3a3a42',3:'#5e5e6b'},m:['..1111..','.122221.','12233221','12322321','12233221','12223221','.122221.','..1111..']},
+    diamond:{p:{1:'#1b8ca8',2:'#4fe3d6',3:'#c4fff7'},m:['..1111..','.123321.','12333321','12333321','.123321.','..1221..','...11...','........']},
+    mace:{p:{1:'#2b2b30',2:'#7d7f8a',3:'#b9bcc8',4:'#6b4a2b'},m:['...1111.','..123321','..133331','..123321','...1221.','..14....','.14.....','14......']}
+  };
+  function px(k){const o=PX[k];let r='';o.m.forEach((row,y)=>[...row].forEach((c,x)=>{if(c!=='.')r+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${o.p[c]}"/>`}));return `<svg viewBox="0 0 8 8" width="28" height="28" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`}
+  function pwCheck(pw){
+    const miss=[];
+    if(pw.length<8)miss.push('8+ characters');
+    if(!/[A-Z]/.test(pw))miss.push('a capital letter');
+    if((pw.match(/[0-9]/g)||[]).length<2)miss.push('2 numbers');
+    if(!/[^A-Za-z0-9]/.test(pw))miss.push('a special character');
+    let lvl=0;
+    if(pw&&miss.length)lvl=1;
+    else if(pw){lvl=(pw.length>=12&&(pw.match(/[^A-Za-z0-9]/g)||[]).length>=2)?3:2}
+    return{lvl,miss};
+  }
+  function pwMeter(){
+    const {lvl,miss}=pwCheck(accP.value);
+    const bars=document.querySelectorAll('#accMeter .pm-bars i'),ico=document.getElementById('pmIco'),lab=document.getElementById('pmLab'),hint=document.getElementById('pmHint');
+    const col=['','#ff5a5a','#4fe3d6','#ffb02e'][lvl];
+    bars.forEach((b,i)=>b.style.background=i<lvl?col:'');
+    if(!lvl){ico.innerHTML='';lab.textContent='';hint.textContent='Needs: 8+ characters, a capital letter, 2 numbers, a special character.';return}
+    const k=['','coal','diamond','mace'][lvl];
+    ico.innerHTML='';const im=new Image();im.width=28;im.height=28;im.alt=k;im.style.imageRendering='pixelated';
+    im.onerror=()=>{ico.innerHTML=px(k)};im.src='img/'+k+'.png';ico.appendChild(im);
+    lab.style.color=col;
+    lab.textContent=['','Weak','Medium','Strong'][lvl];
+    hint.textContent=lvl===1?'Not allowed. Still needs: '+miss.join(', ')+'.':lvl===2?'Allowed. For Strong, use 12+ characters and 2 or more special characters.':'Allowed. Great password!';
+  }
+  accP.addEventListener('input',pwMeter);
+  accGo.addEventListener('click',async()=>{
+    const em=accE.value.trim(),pw=accP.value;
+    if(!em||!pw)return accSay('Enter your email and password.');
+    if(accMode==='up'){
+      if(!/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(em))return accSay('Enter a real email address.');
+      if(pw.length<8)return accSay('Password must be at least 8 characters.');
+      if(!/[A-Z]/.test(pw))return accSay('Password needs at least one capital letter.');
+      if((pw.match(/[0-9]/g)||[]).length<2)return accSay('Password needs at least 2 numbers.');
+      if(!/[^A-Za-z0-9]/.test(pw))return accSay('Password needs at least one special character.');
+      if(pw!==accP2.value)return accSay('Passwords do not match.');
+    }
+    accGo.disabled=true;accSay('Please wait...',true);
+    try{
+      const a=await loadFb();
+      if(accMode==='up'){const cr=await a.createUserWithEmailAndPassword(em,pw);try{await cr.user.sendEmailVerification()}catch(e){}accSay('Account created. We sent a verification link to your email. Now sign in from the launcher.',true)}
+      else{await a.signInWithEmailAndPassword(em,pw);accSay('Signed in. You can use the launcher now.',true)}
+    }catch(x){
+      const c=x.code||x.message||'';
+      accSay(/email-already/.test(c)?'That email already has an account. Try signing in.':/weak-password/.test(c)?'Password must be at least 6 characters.':/invalid-email/.test(c)?'That email does not look right.':/invalid-credential|wrong-password|user-not-found/.test(c)?'Wrong email or password.':/network|load/.test(c)?'No connection. Try again.':/unauthorized-domain/.test(c)?'This site is not authorized in Firebase yet.':'Something went wrong: '+c)
+    }finally{accGo.disabled=false}
+  });
 
   // FPS bars grow when scrolled into view
   const fps=document.getElementById('fpsBars');
