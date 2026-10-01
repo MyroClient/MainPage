@@ -52,6 +52,7 @@ header{position:sticky;top:0;z-index:50;height:var(--nav-h);background:rgba(8,10
 .btn-ghost{background:var(--panel);border-color:var(--line);color:var(--text)}
 .btn-ghost:hover{border-color:var(--dim)}
 .btn-lg{height:58px;padding:0 34px;font-size:1.1rem;border-radius:14px}
+.cta-row .btn-lg{width:min(100%,300px);padding:0 20px}
 .burger{display:none;position:relative;width:48px;height:48px;border-radius:12px;background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:border-color .25s}
 .burger span{position:absolute;left:14px;width:18px;height:2px;border-radius:2px;background:var(--text);transition:transform .4s cubic-bezier(.6,0,.2,1),opacity .2s,top .4s cubic-bezier(.6,0,.2,1)}
 .burger span:nth-child(1){top:15px}.burger span:nth-child(2){top:22px}.burger span:nth-child(3){top:29px}
@@ -65,6 +66,7 @@ header{position:sticky;top:0;z-index:50;height:var(--nav-h);background:rgba(8,10
 header{transition:background .3s}header.scrolled{background:rgba(8,10,18,.95)}
 .menu-dl{display:none}
 .btn svg{width:22px;height:22px;flex:none}
+@media(max-width:880px){.btn .os-ico,.btn .for-os{display:none}}
 @media(max-width:880px){
   .links{position:absolute;top:var(--nav-h);left:0;right:0;flex-direction:column;background:var(--bg2);padding:12px 28px 24px;border-bottom:1px solid var(--line);opacity:0;visibility:hidden;transform:translateY(-14px);transition:opacity .3s,transform .35s cubic-bezier(.2,.8,.2,1),visibility .3s}
   .links.open{opacity:1;visibility:visible;transform:none}
@@ -511,7 +513,7 @@ c-3.53994,-2.2446 -4.82651,-5.44012 -6.13125,-9.2236c-0.60542,-1.64566 -4.26299,
       <h1>MyroClient</h1>
       <p class="sub">The free Minecraft client with boosted FPS, 100+ mods and auto queue for PvPHQ.</p>
       <div class="cta-row">
-        <button class="btn btn-main btn-lg dl-open"><span class="os-ico"></span>Download for <span class="os-name">Windows</span></button>
+        <button class="btn btn-main btn-lg dl-open"><span class="os-ico"></span>Download<span class="for-os"> for <span class="os-name">Windows</span></span></button>
         <a href="#mods" class="btn btn-ghost btn-lg">Browse mods</a>
       </div>
       <p class="hero-meta">Free · Windows, macOS and Linux</p>
@@ -592,8 +594,8 @@ c-3.53994,-2.2446 -4.82651,-5.44012 -6.13125,-9.2236c-0.60542,-1.64566 -4.26299,
     <div class="wrap">
       <h2>Free to download. Ready in a minute.</h2>
       <div class="cta-row">
-        <button class="btn btn-main btn-lg dl-open"><span class="os-ico"></span>Download for <span class="os-name">Windows</span></button>
-        <a href="#" class="btn btn-ghost btn-lg">Join our Discord</a>
+        <button class="btn btn-main btn-lg dl-open"><span class="os-ico"></span>Download<span class="for-os"> for <span class="os-name">Windows</span></span></button>
+        <a href="https://discord.gg/ZX5Rsk2wpu" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">Join our Discord</a>
       </div>
     </div>
   </section>
@@ -931,7 +933,7 @@ c-3.53994,-2.2446 -4.82651,-5.44012 -6.13125,-9.2236c-0.60542,-1.64566 -4.26299,
   function setOS(k){
     document.querySelectorAll('.os-ico').forEach(e=>e.innerHTML=OS_ICONS[k]);
     document.querySelectorAll('.os-name').forEach(e=>e.textContent=OS_NAMES[k]);
-    document.getElementById('osHint').textContent=k===detected?'Detected on your device':'Selected by you';
+    document.getElementById('osHint').textContent=k===detected?(/Android|iPhone|iPad/.test(ua)?'Choose your computer system below':'Detected on your device'):'Selected by you';
     optOs.href=LINKS[k];
   }
   setOS(detected); optFabric.href=LINKS.fabric;
@@ -950,6 +952,19 @@ c-3.53994,-2.2446 -4.82651,-5.44012 -6.13125,-9.2236c-0.60542,-1.64566 -4.26299,
   const fps=document.getElementById('fpsBars');
   new IntersectionObserver((en,ob)=>{if(en[0].isIntersecting){fps.classList.add('go');ob.disconnect()}},{threshold:.3}).observe(fps);
   setTimeout(()=>{if(!fps.classList.contains('go')&&fps.getBoundingClientRect().top<innerHeight)fps.classList.add('go')},1500);
+  // Smooth-scroll to sections without showing #section in the address bar
+  function cleanUrl(){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}
+  document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    const id=a.getAttribute('href').slice(1);
+    if(!id) return;
+    a.addEventListener('click',e=>{
+      const t=document.getElementById(id); if(!t) return;
+      e.preventDefault();
+      t.scrollIntoView({behavior:'smooth',block:'start'});
+      cleanUrl();
+    });
+  });
+  if(location.hash) cleanUrl();
 </script>
 </body>
 </html>
